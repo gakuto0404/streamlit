@@ -34,13 +34,13 @@ def start_Order_His():
     st.write("<b>絞り込み条件</b>",unsafe_allow_html=True)
     
     cols = st.columns((1, 1, 1))
-
     work_name = cols[0].selectbox(
         "■ 作業者名を選択してください。",
         ["-","佐野","谷本","猿谷","山崎","原田","浪岡","岸田","小山","若松","今泉","林",]
         )
 
-    kuuhaku = cols[1]
+    cols = st.columns((1, 1, 1))
+
     date = cols[0].date_input("■ 作業日")
 
     selected_Press = cols[1].selectbox(
@@ -96,10 +96,81 @@ def start_Order_His():
         list_type   
         )
 
+    Wrok_time = cols[0].time_input("■ かかった時間")
 
-    
+    selected_Work_Item = cols[1].selectbox(
+        "■ 作業工程の絞り込みです。選択してください。",
+        ["-",
+         "ベッド・レッグ",
+         "コラム",
+         "クラウン・フレーム",
+         "クランク",
+         "フライホイール",
+         "モータ",
+         "クラッチ",
+         "スライド",
+         "ダイナミックバランサー",
+         "コネクションユニット",
+         "ボルスター",
+         "ガイドコラム",
+         "配管",
+         "仮回し"
+         ]
+        )
+    Work_list_code = list()
+    if selected_Work_Item == "ベッド・レッグ":
+        W_list_offset = 1
+        W_list_read   = 9
+    elif selected_Work_Item == "コラム":
+        W_list_offset = 21
+        W_list_read   = 3
+    elif selected_Work_Item == "クラウン・フレーム":
+        W_list_offset = 31
+        W_list_read   = 6
+    elif selected_Work_Item == "クランク":
+        W_list_offset = 41
+        W_list_read   = 13
+    elif selected_Work_Item == "フライホイール":
+        W_list_offset = 61
+        W_list_read   = 5
+    elif selected_Work_Item == "モータ":
+        W_list_offset = 71
+        W_list_read   = 5
+    elif selected_Work_Item == "クラッチ":
+        W_list_offset = 81
+        W_list_read   = 6
+    elif selected_Work_Item == "スライド":
+        W_list_offset = 91
+        W_list_read   = 13
+    elif selected_Work_Item == "ダイナミックバランサー":
+        W_list_offset = 111
+        W_list_read   = 9
+    elif selected_Work_Item == "コネクションユニット":
+        W_list_offset = 131
+        W_list_read   = 12
+    elif selected_Work_Item == "ボルスター":
+        W_list_offset = 151
+        W_list_read   = 9
+    elif selected_Work_Item == "ガイドコラム":
+        W_list_offset = 171
+        W_list_read   = 5
+    elif selected_Work_Item == "配管":
+        W_list_offset = 181
+        W_list_read   = 12
+    elif selected_Work_Item == "仮回し":
+        W_list_offset = 201
+        W_list_read   = 1
+    else :
+        W_list_offset = 900
+        W_list_read   = 5
+        
+    readmax = W_list_offset + W_list_read
+    Work_list_code = Work_schedule_csv[W_list_offset:readmax]["1"]
+    selected_Work = cols[2].selectbox(
+        "ー作業工程項目を選択してください。",
+        Work_list_code   
+        )
 
-    #selected_Work_Item
     comment = st.text_area("■ コメント")
 
     S_button1 = st.button("検索")
