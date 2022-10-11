@@ -3,6 +3,7 @@ import os.path
 import pandas as pd
 import sqlite3
 import time
+import datetime
 
 # Streamlit Setting-------------------------------------
 st.set_page_config(
@@ -34,16 +35,16 @@ def start_Order_His():
     st.write("<b>絞り込み条件</b>",unsafe_allow_html=True)
     
     cols = st.columns((1, 1, 1))
-    work_name = cols[0].selectbox(
+    workers_name = cols[0].selectbox(
         "■ 作業者名を選択してください。",
-        ["-","佐野","谷本","猿谷","山崎","原田","浪岡","岸田","小山","若松","今泉","林",]
+        ["-","佐野","谷本","猿谷","山崎","原田","浪岡","岸田","小山","若松","今泉","林"]
         )
+
+    date = cols[1].date_input("■ 作業日")
 
     cols = st.columns((1, 1, 1))
 
-    date = cols[0].date_input("■ 作業日")
-
-    selected_Press = cols[1].selectbox(
+    selected_Press = cols[0].selectbox(
         "■ 機種の絞り込みです。選択してください。",
         ["-",
          "PLENOX series",
@@ -91,12 +92,14 @@ def start_Order_His():
         
     readmax = P_list_offset + P_list_read
     list_type = Press_csv[P_list_offset:readmax]["1"]
-    selected_Press_type = cols[2].selectbox(
+    selected_Press_type = cols[1].selectbox(
         "ー機種を選択してください。",
         list_type   
         )
 
-    Wrok_time = cols[0].time_input("■ かかった時間")
+    press_No = cols[2].number_input("■ 号機を記入してください。", 0 ,10000, 0)
+
+    Wrok_time = cols[0].time_input("■ かかった時間", datetime.time(00, 00))
 
     selected_Work_Item = cols[1].selectbox(
         "■ 作業工程の絞り込みです。選択してください。",
@@ -173,54 +176,42 @@ def start_Order_His():
 
     comment = st.text_area("■ コメント")
 
-    S_button1 = st.button("検索")
-
-
-
-
-
-
-#以下未変更
-# ----------------------------------------------------
-        
-    # ----------------------------------------------------
-    # Main Screen
-    # ----------------------------------------------------
-    if S_button1 == False:
-        st.info("検索ボタンを押してください。")
-        #st.info("検索ボタンを押してください。", icon="ℹ️")
+    CB = st.checkbox("✓ 全て記入しました")
+    cols = st.columns((1, 3, 9))
+    S_button1 = cols[0].button("登録")
     
-    if S_button1 == True:
+
+# ----------------------------------------------------
+    
+    if S_button1 == True and CB == True :
         with st.spinner('Wait for it...'):
             time.sleep(2)
-        db_sys = Auto_Order_Database()
+
+        db_sys = Work_sheet_Database()
         db_data = db_sys.get(
+                workers_name,
+                date,
                 selected_Press,
                 selected_Press_type,
+                press_No,
+                Wrok_time,
+                selected_Work_Item,
+                selected_Work,
+                comment
             )
         db_sys.close()
-              
-        styles = [
-            dict(selector="th", props=[("font-size", "150%"),
-                               ("text-align", "center")])
-                ]
-        
-        # データが存在しないときはエラー表記
-        if db_data.empty :
-            st.error("SQLにデータが存在しません🥺")
-            st.stop()
-        
-        # カーソル無
-        #st.table(db_data)
+
+        cols[1].info("登録しました。")
         
         # カーソル有
         st.dataframe(db_data,2500, 1300)
+    elif S_button1 == True and CB == False :
+        st.write(f'<span style="color:red">{"※ 全て記入しましたらチェックをしてください"}</span>', unsafe_allow_html=True)
         
+# ----------------------------------------------------
 
-   # -----------------------------------------------------------------------------------------
-# 自動発注履歴をSQLから取得
-# -----------------------------
-class Auto_Order_Database:
+
+class Work_sheet_Database:
     # 初期化=====================================================================
     def __init__(self):
         self.conn   = sqlite3.connect(BUP_DB_Path, check_same_thread=False)
@@ -228,26 +219,37 @@ class Auto_Order_Database:
         self.table  = []
     #===========================================================================
     
-    # データ取得=================================================================
-    def get(self, db_press, db_press_type):    
-    
+    # データ書き込み=============================================================
+    def get(self, db_press, db_press_type):
+
         if db_press == "-":
             logic1 = "or"
-        else:
-            logic1 = "and"
-        
-        
-        if db_press == "-":
             sql_text = ""
         else:
+            logic1 = "and"
             sql_text =f"""
             where 
             Press_Type = "{db_press_type}" {logic1}
-            """
+            """  
             
         sql_read = f""" SELECT * FROM OT {sql_text} """
         df = pd.read_sql(sql_read, self.conn)
         return df
+        
+        #=======================================================================
+        dbname = 'main.db'
+        # DBを作成する（既に作成されていたらこのDBに接続する）
+        conn = sqlite3.connect(dbname)
+
+        # SQLiteを操作するためのカーソルを作成
+        cur = conn.cursor()
+
+        # テーブルの作成
+        cur.execute(
+            'CREATE TABLE IF NOT EXISTS [" & workers_name & "](id INTEGER PRIMARY KEY AUTOINCREMENT, name STRING, price INTEGER)'
+        )
+        #=======================================================================
+
     #===========================================================================
     
     # SQLを閉じる================================================================
@@ -256,9 +258,4 @@ class Auto_Order_Database:
         self.conn.close()
     #===========================================================================
         
-
-#===========================================================================================
-# Main Program
-#===========================================================================================
-
 start_Order_His()
