@@ -1,3 +1,4 @@
+#from readline import insert_text
 import streamlit as st
 import os.path
 import pandas as pd
@@ -22,7 +23,7 @@ Press_csv  = pd.read_csv(filepath_or_buffer="//192.168.1.212/アイシス/00_製
                          sep=",")
 Work_schedule_csv  = pd.read_csv('C://Users//tani//Desktop//desktop_python2//作業工程表.csv')
 leader_path    = "//192.168.1.212//アイシス//生産管理//会議資料//担当者一覧.xlsx"
-BUP_DB_Path ="//192.168.1.212/アイシス/00_製造_自動発注システム/20_DataBase/Auto_Order_Sys.db"
+BUP_DB_Path = "//192.168.1.212/アイシス/00_製造_自動発注システム/20_DataBase/Auto_Order_Sys.db"
 
 # ページタイトル-----------------------------------------------------------------------------
 st.title('Work Sheet')
@@ -47,43 +48,43 @@ def start_Order_His():
     selected_Press = cols[0].selectbox(
         "■ 機種の絞り込みです。選択してください。",
         ["-",
-         "PLENOX series",
-         "U series",
-         "N series",
-         "S・G series",
-         "ES series",
-         "KIT series",
-         "C series",
-         "DM series",
-         "VIVO series"
+         "PLENOX_series",
+         "U_series",
+         "N_series",
+         "S・G_series",
+         "ES_series",
+         "KIT_series",
+         "C_series",
+         "DM_series",
+         "VIVO_series"
          ]
         )
     list_type = list()
-    if selected_Press == "PLENOX series":
+    if selected_Press == "PLENOX_series":
         P_list_offset = 1
         P_list_read   = 12
-    elif selected_Press == "U series":
+    elif selected_Press == "U_series":
         P_list_offset = 31
         P_list_read   = 24
-    elif selected_Press == "N series":
+    elif selected_Press == "N_series":
         P_list_offset = 61
         P_list_read   = 7
-    elif selected_Press == "S・G series":
+    elif selected_Press == "S・G_series":
         P_list_offset = 91
         P_list_read   = 11
-    elif selected_Press == "ES series":
+    elif selected_Press == "ES_series":
         P_list_offset = 81
         P_list_read   = 2
-    elif selected_Press == "KIT series":
+    elif selected_Press == "KIT_series":
         P_list_offset = 121
         P_list_read   = 3
-    elif selected_Press == "C series":
+    elif selected_Press == "C_series":
         P_list_offset = 111
         P_list_read   = 4
-    elif selected_Press == "DM series":
+    elif selected_Press == "DM_series":
         P_list_offset = 131
         P_list_read   = 3
-    elif selected_Press == "VIVO series":
+    elif selected_Press == "VIVO_series":
         P_list_offset = 21
         P_list_read   = 3
     else :
@@ -203,8 +204,6 @@ def start_Order_His():
 
         cols[1].info("登録しました。")
         
-        # カーソル有
-        st.dataframe(db_data,2500, 1300)
     elif S_button1 == True and CB == False :
         st.write(f'<span style="color:red">{"※ 全て記入しましたらチェックをしてください"}</span>', unsafe_allow_html=True)
         
@@ -220,35 +219,40 @@ class Work_sheet_Database:
     #===========================================================================
     
     # データ書き込み=============================================================
-    def get(self, db_press, db_press_type):
+    def get(self, workers_name, date, selected_Press, selected_Press_type, press_No, Wrok_time, selected_Work_Item, selected_Work, comment):
 
-        if db_press == "-":
-            logic1 = "or"
-            sql_text = ""
-        else:
-            logic1 = "and"
-            sql_text =f"""
-            where 
-            Press_Type = "{db_press_type}" {logic1}
-            """  
-            
-        sql_read = f""" SELECT * FROM OT {sql_text} """
-        df = pd.read_sql(sql_read, self.conn)
-        return df
-        
-        #=======================================================================
-        dbname = 'main.db'
+        db_path = '//192.168.1.212/アイシス/00_製造_自動発注システム/20_DataBase/main.db'
         # DBを作成する（既に作成されていたらこのDBに接続する）
-        conn = sqlite3.connect(dbname)
-
+        conn = sqlite3.connect(db_path)
         # SQLiteを操作するためのカーソルを作成
         cur = conn.cursor()
 
         # テーブルの作成
-        cur.execute(
-            'CREATE TABLE IF NOT EXISTS [" & workers_name & "](id INTEGER PRIMARY KEY AUTOINCREMENT, name STRING, price INTEGER)'
-        )
-        #=======================================================================
+        table_name = str(selected_Press) + "_" + str(selected_Press_type) + "_" + str(press_No)
+        sql_create = "CREATE TABLE IF NOT EXISTS "
+        sql_columns  = """(id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workers_name TEXT,
+                date TEXT,
+                selected_Press TEXT,
+                selected_Press_type TEXT,
+                press_No INTEGER,
+                Wrok_time TEXT,
+                selected_Work_Item TEXT,
+                selected_Work TEXT,
+                comment TEXT
+                )"""
+        sql_C_table = sql_create + table_name + sql_columns 
+
+        db_date = date.strftime('%Y/%m/%d')
+
+        sql_insert_1 = "INSERT INTO "
+        sql_insert_2 = "(workers_name,date,selected_Press,selected_Press_type,press_No,Wrok_time,selected_Work_Item,selected_Work,comment)values ('"""+ workers_name +"""','"""+ db_date +"""','"""+ selected_Press +"""','"""+ str(selected_Press_type) +"""','"""+ str(press_No) +"""','"""+ str(Wrok_time) +"""','"""+ selected_Work_Item +"""','"""+ selected_Work +"""','"""+ comment +"');"
+                
+        sql_insert = sql_insert_1 + table_name + sql_insert_2
+
+        cur.execute(sql_C_table)
+        cur.execute(sql_insert)
+        conn.commit()
 
     #===========================================================================
     
