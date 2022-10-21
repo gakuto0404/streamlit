@@ -6,6 +6,7 @@ import sqlite3
 import time
 import datetime
 import openpyxl
+import numpy as np
 
 # Streamlit Setting-------------------------------------
 st.set_page_config(
@@ -44,6 +45,8 @@ def start_Order_His():
     SB_button = st.sidebar.button("表示")
 
     # ----------------------------------------------------
+    # ----------------------------------------------------
+    
     if SB_change_pages == "作業時間登録":
         st.write("<b>作業機種記入欄</b>",unsafe_allow_html=True)
         
@@ -118,87 +121,99 @@ def start_Order_His():
         press_No = cols[2].number_input("■ 号機を記入してください。", 1 ,10000, 1)
         
         st.write("<b>作業工程記入欄</b>",unsafe_allow_html=True)
-        cols = st.columns((1, 1, 1, 1))
-        Wrok_time = cols[0].time_input("■ かかった時間", datetime.time(00, 00))
-        selected_Work_Item = cols[1].selectbox(
-            "■ 作業工程の絞り込みです。選択してください。",
-            ["-",
-            "ベッド・レッグ",
-            "コラム",
-            "クラウン・フレーム",
-            "クランク",
-            "フライホイール",
-            "モータ",
-            "クラッチ",
-            "スライド",
-            "ダイナミックバランサー",
-            "コネクションユニット",
-            "ボルスター",
-            "ガイドコラム",
-            "配管",
-            "仮回し"
-            ]
-            )
-        Work_list_code = list()
-        if selected_Work_Item == "ベッド・レッグ":
-            W_list_offset = 1
-            W_list_read   = 9
-        elif selected_Work_Item == "コラム":
-            W_list_offset = 21
-            W_list_read   = 3
-        elif selected_Work_Item == "クラウン・フレーム":
-            W_list_offset = 31
-            W_list_read   = 6
-        elif selected_Work_Item == "クランク":
-            W_list_offset = 41
-            W_list_read   = 13
-        elif selected_Work_Item == "フライホイール":
-            W_list_offset = 61
-            W_list_read   = 5
-        elif selected_Work_Item == "モータ":
-            W_list_offset = 71
-            W_list_read   = 5
-        elif selected_Work_Item == "クラッチ":
-            W_list_offset = 81
-            W_list_read   = 6
-        elif selected_Work_Item == "スライド":
-            W_list_offset = 91
-            W_list_read   = 13
-        elif selected_Work_Item == "ダイナミックバランサー":
-            W_list_offset = 111
-            W_list_read   = 9
-        elif selected_Work_Item == "コネクションユニット":
-            W_list_offset = 131
-            W_list_read   = 12
-        elif selected_Work_Item == "ボルスター":
-            W_list_offset = 151
-            W_list_read   = 9
-        elif selected_Work_Item == "ガイドコラム":
-            W_list_offset = 171
-            W_list_read   = 5
-        elif selected_Work_Item == "配管":
-            W_list_offset = 181
-            W_list_read   = 12
-        elif selected_Work_Item == "仮回し":
-            W_list_offset = 201
-            W_list_read   = 1
-        else :
-            W_list_offset = 900
-            W_list_read   = 5
+        frame_amount = st.columns((1, 8))[0].number_input("フォームの数", 1 ,10, 1)
 
-        readmax = W_list_offset + W_list_read
-        Work_list_code = Work_schedule_csv[W_list_offset:readmax]["1"]
-        selected_Work = cols[2].selectbox(
-            "ー作業工程項目を選択してください。",
-            Work_list_code   
-            )
-        comment = cols[3].text_area("■ コメント")
+        Wrok_time = [0,0,0,0,0,0,0,0,0,0]
+        selected_Work_Item = [0,0,0,0,0,0,0,0,0,0]
+        selected_Work = [0,0,0,0,0,0,0,0,0,0]
+        comment = [0,0,0,0,0,0,0,0,0,0]
+        key_number = 1
+        
+        for FA in range(frame_amount):
+            st.markdown('----')
+            cols = st.columns((1, 1, 1, 1))
+            Wrok_time[FA] = cols[0].time_input("■ 経過時間", datetime.time(00, 00), key = key_number)
+            selected_Work_Item[FA] = cols[1].selectbox(
+                "■ 作業工程の絞り込みです。選択してください。",
+                ["-",
+                "ベッド・レッグ",
+                "コラム",
+                "クラウン・フレーム",
+                "クランク",
+                "フライホイール",
+                "モータ",
+                "クラッチ",
+                "スライド",
+                "ダイナミックバランサー",
+                "コネクションユニット",
+                "ボルスター",
+                "ガイドコラム",
+                "配管",
+                "仮回し"
+                ],
+                key = key_number)
+            Work_list_code = list()
+            if selected_Work_Item[FA] == "ベッド・レッグ":
+                W_list_offset = 1
+                W_list_read   = 9
+            elif selected_Work_Item[FA] == "コラム":
+                W_list_offset = 21
+                W_list_read   = 3
+            elif selected_Work_Item[FA] == "クラウン・フレーム":
+                W_list_offset = 31
+                W_list_read   = 6
+            elif selected_Work_Item[FA] == "クランク":
+                W_list_offset = 41
+                W_list_read   = 13
+            elif selected_Work_Item[FA] == "フライホイール":
+                W_list_offset = 61
+                W_list_read   = 5
+            elif selected_Work_Item[FA] == "モータ":
+                W_list_offset = 71
+                W_list_read   = 5
+            elif selected_Work_Item[FA] == "クラッチ":
+                W_list_offset = 81
+                W_list_read   = 6
+            elif selected_Work_Item[FA] == "スライド":
+                W_list_offset = 91
+                W_list_read   = 13
+            elif selected_Work_Item[FA] == "ダイナミックバランサー":
+                W_list_offset = 111
+                W_list_read   = 9
+            elif selected_Work_Item[FA] == "コネクションユニット":
+                W_list_offset = 131
+                W_list_read   = 12
+            elif selected_Work_Item[FA] == "ボルスター":
+                W_list_offset = 151
+                W_list_read   = 9
+            elif selected_Work_Item[FA] == "ガイドコラム":
+                W_list_offset = 171
+                W_list_read   = 5
+            elif selected_Work_Item[FA] == "配管":
+                W_list_offset = 181
+                W_list_read   = 12
+            elif selected_Work_Item[FA] == "仮回し":
+                W_list_offset = 201
+                W_list_read   = 1
+            else :
+                W_list_offset = 900
+                W_list_read   = 5
+
+            readmax = W_list_offset + W_list_read
+            Work_list_code = Work_schedule_csv[W_list_offset:readmax]["1"]
+            selected_Work[FA] = cols[2].selectbox(
+                "ー作業工程項目を選択してください。",
+                Work_list_code,
+                key = key_number)
+            comment[FA] = cols[3].text_area("■ コメント", key = key_number)
+            
+            key_number += 1
 
         CB = st.checkbox("✓ 全て記入しました")
         cols = st.columns((1, 4, 8))
         button1 = cols[0].button("登録")
 
-        # 変数の中身チェック~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # 変数の中身(空白)チェック~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         entry = False
         if button1 == True:
@@ -226,7 +241,8 @@ def start_Order_His():
                     Wrok_time,
                     selected_Work_Item,
                     selected_Work,
-                    comment
+                    comment,
+                    key_number
                 )
             db_sys.close()
 
@@ -253,7 +269,8 @@ class Work_sheet_Database:
     
     # データ書き込み=============================================================
     def get(self, workers_name, date, selected_Press, selected_Press_type,\
-            press_No, Wrok_time, selected_Work_Item, selected_Work, comment):
+            press_No, Wrok_time, selected_Work_Item, selected_Work, comment,\
+            key_number):
 
         db_path = '//192.168.1.212/アイシス/00_製造_自動発注システム/20_DataBase/main.db'
         # DBを作成する（既に作成されていたらこのDBに接続する）
@@ -263,31 +280,31 @@ class Work_sheet_Database:
 
         # テーブルの作成
         db_selected_Press_type = selected_Press_type.replace('-', 'ー')
+        db_date = date.strftime('%Y/%m/%d')
         table_name = str(selected_Press) + "_" + str(db_selected_Press_type) + "_" + str(press_No)
         sql_create = "CREATE TABLE IF NOT EXISTS "
-        sql_columns  =  """(id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            workers_name TEXT,
-                            date TEXT,
-                            selected_Press TEXT,
-                            selected_Press_type TEXT,
-                            press_No INTEGER,
-                            Wrok_time TEXT,
-                            selected_Work_Item TEXT,
-                            selected_Work TEXT,
-                            comment TEXT
-                            )"""
+        sql_columns = """(id INTEGER PRIMARY KEY AUTOINCREMENT,
+                          workers_name TEXT,         date TEXT,          selected_Press TEXT,
+                          selected_Press_type TEXT,  press_No INTEGER,   Wrok_time TEXT,
+                          selected_Work_Item TEXT,  selected_Work TEXT,  comment TEXT
+                          )"""
         sql_C_table = sql_create + table_name + sql_columns 
 
-        db_date = date.strftime('%Y/%m/%d')
-
-        sql_insert_1 = "INSERT INTO "
-        sql_insert_2 = "(workers_name,date,selected_Press,selected_Press_type,press_No,Wrok_time,selected_Work_Item,selected_Work,comment)values ('"""+ workers_name +"""','"""+ db_date +"""','"""+ selected_Press +"""','"""+ str(selected_Press_type) +"""','"""+ str(press_No) +"""','"""+ str(Wrok_time) +"""','"""+ selected_Work_Item +"""','"""+ selected_Work +"""','"""+ comment +"');"
-                
-        sql_insert = sql_insert_1 + table_name + sql_insert_2
-
+        sql_insert_front = "INSERT INTO "
+        sql_insert_rear = """(workers_name,         date,           selected_Press,     
+                              selected_Press_type,  press_No,       Wrok_time,
+                              selected_Work_Item,   selected_Work,  comment
+                              )
+                              values (?,?,?,?,?,?,?,?,?)"""
+        sql_insert = sql_insert_front + table_name + sql_insert_rear
         cur.execute(sql_C_table)
-        cur.execute(sql_insert)
-        conn.commit()
+
+        for R_FA in range(key_number-1):
+            insert_date = workers_name,              db_date,              selected_Press, \
+                          str(selected_Press_type),  str(press_No),        str(Wrok_time[R_FA]), \
+                          selected_Work_Item[R_FA],  selected_Work[R_FA],  comment[R_FA]
+            cur.execute(sql_insert, insert_date)
+            conn.commit()
 
     #===========================================================================
     
