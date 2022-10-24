@@ -1,12 +1,15 @@
 from operator import truediv
 import streamlit as st
-import os.path
+import numpy as np
 import pandas as pd
+import os.path
 import sqlite3
+import openpyxl
+import glob
 import time
 import datetime
-import openpyxl
-import numpy as np
+from datetime import datetime as dt
+
 
 # Streamlit Setting-------------------------------------
 st.set_page_config(
@@ -30,7 +33,6 @@ BUP_DB_Path = "//192.168.1.212/アイシス/00_製造_自動発注システム/2
 # ページタイトル-----------------------------------------------------------------------------
 st.title('Work Sheet')
 
-
 # -----------------------------------------------------------------------------------------
 # Streamlitで遅延理由の記入欄を表示
 # -----------------------------
@@ -38,18 +40,26 @@ def start_Order_His():
     # ----------------------------------------------------
     # Sidebar
     # ----------------------------------------------------
-
-    SB_change_pages = st.sidebar.radio("表示したいページを選択してください。",
+    
+    # 表示ボタンを押さないとページ変更できない（保持）
+    SB_change_pages = st.sidebar.radio(f"表示したいページを選択してください。",
                                       ("作業時間登録","経過時間表図化")
                                       )
     SB_button = st.sidebar.button("表示")
+    if 'pages' not in st.session_state: 
+        st.session_state['pages'] = "作業時間登録"
+    if SB_change_pages == "作業時間登録" and SB_button == True :
+        st.session_state['pages'] = "作業時間登録"
+    if SB_change_pages == "経過時間表図化" and SB_button == True :
+        st.session_state['pages'] = "経過時間表図化"
+    st.sidebar.success(f"現在のページは{st.session_state['pages']}です。")
 
     # ----------------------------------------------------
     # ----------------------------------------------------
     
-    if SB_change_pages == "作業時間登録":
+#作業時間登録ページコード===========================================================================================
+    if st.session_state['pages'] == "作業時間登録":
         st.write("<b>作業機種記入欄</b>",unsafe_allow_html=True)
-        
         cols = st.columns((1, 1, 1))
 
         wb3 = openpyxl.load_workbook(leader_path, data_only=True, read_only=True, keep_vba=True)
@@ -206,7 +216,7 @@ def start_Order_His():
                 Work_list_code,
                 key = key_number)
             comment[FA] = cols[3].text_area("■ コメント", key = key_number)
-            
+
             key_number += 1
 
         CB = st.checkbox("✓ 全て記入しました")
@@ -214,16 +224,15 @@ def start_Order_His():
         button1 = cols[0].button("登録")
 
         # 変数の中身(空白)チェック~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
         entry = False
         if button1 == True:
-            if workers_name != "-":
-                if selected_Press != "-":
-                    if Wrok_time != datetime.time(00, 00):
-                        if selected_Work_Item != "-":
-                            if comment != "":
-                                entry = True
-
+            if workers_name != "-" and selected_Press != "-":
+                    for Re_FA in range(frame_amount):
+                        if Wrok_time[Re_FA] != datetime.time(00, 00) and selected_Work_Item[Re_FA] != "-" and comment[Re_FA] != "":
+                            entry = True
+                        else :
+                            entry = False
+                            break
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         # ----------------------------------------------------
@@ -245,17 +254,18 @@ def start_Order_His():
                     key_number
                 )
             db_sys.close()
-
             cols[1].info("登録しました。")
-        
         elif button1 == True and entry == True and CB == False :
-            cols[1].error("※ 全て記入しましたらチェックをしてください")
+            cols[1].error("※ 確認のためチェックをしてください")
         elif button1 == True and entry == False :
             cols[1].error("※ 全て記入してからの登録をお願いします。")
         # ----------------------------------------------------
-    #=======================================================================
-    elif SB_change_pages == "経過時間表図化":
+#=================================================================================================================
+    elif st.session_state['pages'] == "経過時間表図化":
         st.write("<b>絞り込み条件</b>",unsafe_allow_html=True)
+
+
+
 
 
 
@@ -278,31 +288,33 @@ class Work_sheet_Database:
         # SQLiteを操作するためのカーソルを作成
         cur = conn.cursor()
 
-        # テーブルの作成
-        db_selected_Press_type = selected_Press_type.replace('-', 'ー')
+        #PLENOX機種内の「-」がSQL INSERT時にエラーが出てしまう為。
+        db_selected_Press_type = selected_Press_type.replace('-', 'ー')       
         db_date = date.strftime('%Y/%m/%d')
+
+        # テーブルの作成
         table_name = str(selected_Press) + "_" + str(db_selected_Press_type) + "_" + str(press_No)
         sql_create = "CREATE TABLE IF NOT EXISTS "
         sql_columns = """(id INTEGER PRIMARY KEY AUTOINCREMENT,
-                          workers_name TEXT,         date TEXT,          selected_Press TEXT,
-                          selected_Press_type TEXT,  press_No INTEGER,   Wrok_time TEXT,
-                          selected_Work_Item TEXT,  selected_Work TEXT,  comment TEXT
+                          workers_name TEXT,   date TEXT,
+                          Wrok_time TEXT,      selected_Work_Item TEXT,
+                          selected_Work TEXT,  comment TEXT
                           )"""
-        sql_C_table = sql_create + table_name + sql_columns 
-
-        sql_insert_front = "INSERT INTO "
-        sql_insert_rear = """(workers_name,         date,           selected_Press,     
-                              selected_Press_type,  press_No,       Wrok_time,
-                              selected_Work_Item,   selected_Work,  comment
-                              )
-                              values (?,?,?,?,?,?,?,?,?)"""
-        sql_insert = sql_insert_front + table_name + sql_insert_rear
+        sql_C_table = sql_create + table_name + sql_columns
         cur.execute(sql_C_table)
 
+        # SQLに保存
+        sql_insert_front = "INSERT INTO "
+        sql_insert_rear = """(workers_name,   date,
+                              Wrok_time,      selected_Work_Item,
+                              selected_Work,  comment
+                              )
+                              values (?,?,?,?,?,?)"""
+        sql_insert = sql_insert_front + table_name + sql_insert_rear
         for R_FA in range(key_number-1):
-            insert_date = workers_name,              db_date,              selected_Press, \
-                          str(selected_Press_type),  str(press_No),        str(Wrok_time[R_FA]), \
-                          selected_Work_Item[R_FA],  selected_Work[R_FA],  comment[R_FA]
+            insert_date = workers_name,          db_date,\
+                          str(Wrok_time[R_FA]),  selected_Work_Item[R_FA],  \
+                          selected_Work[R_FA],   comment[R_FA]
             cur.execute(sql_insert, insert_date)
             conn.commit()
 
