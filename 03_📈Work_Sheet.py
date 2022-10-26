@@ -26,7 +26,8 @@ cd = os.path.dirname(__file__)
 Press_csv  = pd.read_csv(filepath_or_buffer="//192.168.1.212/アイシス/00_製造_自動発注システム/10_Press_No/Press_No.csv", 
                          encoding="ANSI", 
                          sep=",")
-Work_schedule_csv = pd.read_csv('C://Users//tani//Desktop//desktop_python2//作業工程表.csv')
+#Work_schedule_csv = pd.read_csv('C://Users//tani//Desktop//desktop_python2//作業工程表.csv')
+Work_schedule_csv = pd.read_csv("//192.168.1.212/アイシス/01_製造_組立進歩システム/01_prog/00_mfg_main/作業工程表.csv")
 leader_path = "//192.168.1.212//アイシス//生産管理//会議資料//担当者一覧.xlsx"
 BUP_DB_Path = "//192.168.1.212/アイシス/00_製造_自動発注システム/20_DataBase/Auto_Order_Sys.db"
 
@@ -47,7 +48,7 @@ def start_Order_His():
                                       )
     SB_button = st.sidebar.button("表示")
     if 'pages' not in st.session_state: 
-        st.session_state['pages'] = "作業時間登録"
+        st.session_state['pages'] = "作業時間登録" #初期値
     if SB_change_pages == "作業時間登録" and SB_button == True :
         st.session_state['pages'] = "作業時間登録"
     if SB_change_pages == "経過時間表図化" and SB_button == True :
@@ -227,12 +228,12 @@ def start_Order_His():
         entry = False
         if button1 == True:
             if workers_name != "-" and selected_Press != "-":
-                    for Re_FA in range(frame_amount):
-                        if Wrok_time[Re_FA] != datetime.time(00, 00) and selected_Work_Item[Re_FA] != "-" and comment[Re_FA] != "":
-                            entry = True
-                        else :
-                            entry = False
-                            break
+                for Re_FA in range(frame_amount):
+                    if Wrok_time[Re_FA] != datetime.time(00, 00) and selected_Work_Item[Re_FA] != "-" and comment[Re_FA] != "":
+                        entry = True
+                    else :
+                        entry = False
+                        break
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         # ----------------------------------------------------
@@ -261,8 +262,53 @@ def start_Order_His():
             cols[1].error("※ 全て記入してからの登録をお願いします。")
         # ----------------------------------------------------
 #=================================================================================================================
+
     elif st.session_state['pages'] == "経過時間表図化":
-        st.write("<b>絞り込み条件</b>",unsafe_allow_html=True)
+        # -------------------------------------------------------------------------------------
+        # Sidebar
+        # -------------------------------------------------------------------------------------
+        password_No = st.sidebar.text_input("■ パスワードを記入してください。",type='password')
+        login_button = st.sidebar.button("ログイン")
+        logout_button = st.sidebar.button("ログアウト")
+
+        #パスワード設定（谷本さんのみ）-----
+        password_setting = "tanimoto"
+        #---------------------------------
+
+        if 'password' not in st.session_state :
+            st.session_state['password'] = ""            #保持変数（password）の初期値
+        if 'limit' not in st.session_state :
+            st.session_state['limit'] = 3                #保持変数（limit）の初期値
+        elif password_No == password_setting and login_button == True:
+            if st.session_state['limit'] > 0 :           #パスワード入力回数カウント
+                st.session_state['limit'] = 3            #パスワード入力回数のリセット
+                st.session_state['password'] = "成功"  #保持変数に（成功！）を代入
+        elif password_No != password_setting and login_button == True:
+            if st.session_state['limit'] > 0 :            #パスワード入力回数カウント
+                st.session_state['limit'] -= 1            #パスワード入力回数の減少
+                st.session_state['password'] = "失敗" #保持変数に（失敗；；）を代入
+                if st.session_state['limit'] == 0 :
+                    st.session_state['password'] = "リセット"
+
+        if st.session_state['password'] == "成功" and logout_button == True:
+            st.session_state['password'] = ""
+            st.session_state['limit'] = 3
+
+        st.sidebar.write(f"パスワード入力チャンスはあと{st.session_state['limit']}回です。")
+
+        if st.session_state['password'] == "":
+            st.sidebar.write("<b>not login(·ε·｀)ｽﾈﾁｬｳ</b>",unsafe_allow_html=True)
+        elif st.session_state['password'] == "成功":
+            st.sidebar.success("ログイン成功ヽ(*´∀｀)ノ")
+        elif st.session_state['password'] == "失敗":
+            st.sidebar.error("ログイン失敗( ´•̥̥̥ω•̥̥̥` )")
+        elif st.session_state['password'] == "リセット":
+            st.sidebar.warning("開発者を呼んでください。( ﾟДﾟ)㌦ｧ!!")
+        
+        # -------------------------------------------------------------------------------------
+        # -------------------------------------------------------------------------------------
+        if st.session_state['password'] == "成功":
+            st.write("<b>グラフ</b>",unsafe_allow_html=True)
 
 
 
